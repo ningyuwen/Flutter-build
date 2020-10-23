@@ -1,0 +1,5 @@
+
+// [FLUTTER_CONFIG_BEGIN]
+setBinding(new Binding([gradle: this]))
+evaluate(new File(settingsDir.absolutePath, 'include_flutter.groovy'))
+// [FLUTTER_CONFIG_END]
