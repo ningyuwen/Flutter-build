@@ -1,0 +1,13 @@
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+
+apply plugin: 'maven'
+
+rootProject.buildDir = 'build'
+
+apply from: 'publish_common.gradle'
+
+println("root path build.gradle")
+
+//task clean(type: Delete) {
+//    delete rootProject.buildDir
+//}

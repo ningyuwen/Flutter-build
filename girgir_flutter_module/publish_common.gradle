@@ -1,0 +1,102 @@
+apply plugin: 'maven-publish'
+apply plugin: 'signing'
+
+group = "com.flutter.plugin"
+
+// 注意，只需要修改这里，其他的均不需要修改
+// maven publish之前（线上构建）一定要升级版本
+version = "0.0.14"
+
+def isReleaseBuild() {
+    return version.contains("SNAPSHOT") == false
+}
+
+def getReleaseRepositoryUrl() {
+    def url = hasProperty('RELEASE_REPOSITORY_URL') ? RELEASE_REPOSITORY_URL
+            : "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
+    println("[INFO]: getReleaseRepositoryUrl() is: $url")
+
+    //test publish
+    url = "http://repo.yypm.com:8181/nexus/content/repositories/releases"
+
+    return url
+}
+
+def getSnapshotRepositoryUrl() {
+    def url = hasProperty('SNAPSHOT_REPOSITORY_URL') ? SNAPSHOT_REPOSITORY_URL
+            : "https://oss.sonatype.org/content/repositories/snapshots/"
+    println("[INFO]: getSnapshotRepositoryUrl() is: $url")
+    return url
+}
+
+def getRepositoryUsername() {
+    def name = hasProperty('NEXUS_USERNAME') ? NEXUS_USERNAME : "deployment"
+    println("[INFO]: getRepositoryUsername() is: $name")
+    return name
+//    return hasProperty('NEXUS_USERNAME') ? NEXUS_USERNAME : ""
+}
+
+def getRepositoryPassword() {
+    def password = hasProperty('NEXUS_PASSWORD') ? NEXUS_PASSWORD : "Deployment20130409"
+    println("[INFO]: getRepositoryPassword() is: $password")
+    return password
+//    return hasProperty('NEXUS_PASSWORD') ? NEXUS_PASSWORD : ""
+}
+
+task androidSourcesJar(type: Jar) {
+    classifier = 'sources'
+    if (project.hasProperty("android")) {
+        from android.sourceSets.main.java.sourceFiles
+    }
+}
+
+task androidNativeJar(type: Jar) {
+    classifier = 'so'
+    from(new File(buildDir, 'libs'))
+    include("**/*.so")
+}
+
+task androidNativeZip(type: Zip) {
+    classifier = 'so'
+    from(new File(buildDir, 'libs'))
+    include("**/*.so")
+}
+
+publishing {
+    repositories {
+        maven {
+            credentials {
+                username = getRepositoryUsername()
+                password = getRepositoryPassword()
+            }
+
+            if (isReleaseBuild()) {
+                url getReleaseRepositoryUrl()
+            } else {
+                url getSnapshotRepositoryUrl()
+            }
+        }
+    }
+}
+
+FileTree tree = fileTree(dir: "$rootDir/aar")
+
+// 遍历aar包下的所有aar文件
+List stringList = []
+
+tree.each { File file ->
+    println "file is: ${file.name}"
+    stringList.add(file.name.replaceAll("_release-1.0.aar", ""))
+}
+
+publishing {
+    publications {
+        stringList.eachWithIndex { String entry, int index ->
+            "${stringList[index]}"(MavenPublication) {
+                artifactId "${stringList[index]}"
+                artifact "$rootDir/aar/${stringList[index]}_release-1.0.aar"
+                println("maven task is : ${stringList[index]}")
+            }
+        }
+    }
+}
